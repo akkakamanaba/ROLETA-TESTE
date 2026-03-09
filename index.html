@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Death Store - Raspadinha</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial, sans-serif;
+background:linear-gradient(180deg,#2b0050,#0d001a);
+color:white;
+text-align:center;
+}
+
+h1{margin-top:30px;}
+
+.grid{
+margin-top:25px;
+display:grid;
+grid-template-columns:repeat(3,110px);
+gap:15px;
+justify-content:center;
+}
+
+.card{
+position:relative;
+width:110px;
+height:110px;
+background:#111;
+border-radius:12px;
+overflow:hidden;
+}
+
+.value{
+position:absolute;
+width:100%;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+font-size:18px;
+}
+
+canvas{
+position:absolute;
+top:0;
+left:0;
+touch-action:none;
+}
+
+input{
+padding:10px;
+border-radius:6px;
+border:none;
+width:180px;
+}
+
+button{
+padding:10px 15px;
+border:none;
+border-radius:6px;
+background:#8a2be2;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+#result{
+margin-top:20px;
+font-size:20px;
+font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>DEATH STORE RASPADINHA</h1>
+
+<div id="login">
+<input id="keyInput" placeholder="Digite sua key">
+<button onclick="checkKey()">Entrar</button>
+<p id="msg"></p>
+</div>
+
+<div id="game" style="display:none;">
+<p>Raspe apenas 1 quadrado</p>
+<div class="grid" id="grid"></div>
+<p id="result"></p>
+</div>
+
+<script>
+
+const keys=[
+"DS-A1B2","DS-C3D4","DS-E5F6","DS-G7H8","DS-I9J0",
+"DS-K1L2","DS-M3N4","DS-O5P6","DS-Q7R8","DS-S9T0",
+"DS-U1V2","DS-W3X4","DS-Y5Z6","DS-AB7C","DS-DE8F",
+"DEATH-PERMANENTE"
+];
+
+const premios=[
+"1M 💎","1.2M 💎","1.3M 💎","1.5M 💎",
+"2M 💎","3M 💎","5M 💎","8M 💎",
+"17M 💎","33M 💎","45M 💎","50M 💎"
+];
+
+let raspou=false;
+let currentKey=null;
+
+function checkKey(){
+
+const k=document.getElementById("keyInput").value.trim();
+
+if(!keys.includes(k)){
+document.getElementById("msg").innerText="Key inválida";
+return;
+}
+
+if(k!=="DEATH-PERMANENTE" && localStorage.getItem("used_"+k)){
+document.getElementById("msg").innerText="Essa key já foi usada!";
+return;
+}
+
+currentKey=k;
+
+document.getElementById("login").style.display="none";
+document.getElementById("game").style.display="block";
+
+startGame();
+}
+
+function startGame(){
+
+const grid=document.getElementById("grid");
+grid.innerHTML="";
+raspou=false;
+document.getElementById("result").innerText="";
+
+for(let i=0;i<9;i++){
+createCard();
+}
+}
+
+function createCard(){
+
+const card=document.createElement("div");
+card.className="card";
+
+const value=document.createElement("div");
+value.className="value";
+value.innerHTML="?";
+
+const canvas=document.createElement("canvas");
+canvas.width=110;
+canvas.height=110;
+
+const ctx=canvas.getContext("2d");
+ctx.fillStyle="#999";
+ctx.fillRect(0,0,110,110);
+ctx.globalCompositeOperation="destination-out";
+
+let revelado=false;
+let segurando=false;
+
+function raspar(e){
+
+if(!segurando || revelado || raspou) return;
+
+e.preventDefault();
+
+const rect=canvas.getBoundingClientRect();
+
+const x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+const y=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+
+ctx.beginPath();
+ctx.arc(x,y,18,0,Math.PI*2);
+ctx.fill();
+
+const pixels=ctx.getImageData(0,0,110,110).data;
+
+let cont=0;
+
+for(let i=3;i<pixels.length;i+=50){
+if(pixels[i]===0) cont++;
+}
+
+if(cont>200){
+
+revelado=true;
+raspou=true;
+
+canvas.remove();
+
+const premio=premios[Math.floor(Math.random()*premios.length)];
+value.innerHTML=premio;
+
+document.getElementById("result").innerText="Você ganhou: "+premio;
+
+if(currentKey!=="DEATH-PERMANENTE"){
+localStorage.setItem("used_"+currentKey,"true");
+}
+
+}
+}
+
+canvas.addEventListener("mousedown",()=>segurando=true);
+canvas.addEventListener("mouseup",()=>segurando=false);
+canvas.addEventListener("mousemove",raspar);
+
+canvas.addEventListener("touchstart",()=>segurando=true);
+canvas.addEventListener("touchend",()=>segurando=false);
+canvas.addEventListener("touchmove",raspar);
+
+card.appendChild(value);
+card.appendChild(canvas);
+
+document.getElementById("grid").appendChild(card);
+}
+
+</script>
+
+</body>
+</html>
